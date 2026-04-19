@@ -8,10 +8,7 @@ import {
   type DatabaseTransaction,
 } from '../../infra/database/client';
 import { processes, witnesses } from '../../schema';
-import type {
-  UpdateWitnessInput,
-  WitnessFiltersInput,
-} from '../../schema/zod';
+import type { UpdateWitnessInput, WitnessFiltersInput } from '../../schema/zod';
 
 export type WitnessEntity = typeof witnesses.$inferSelect;
 
@@ -56,7 +53,9 @@ export class WitnessesRepository {
     filters: NormalizedWitnessFilters,
   ): Promise<WitnessListResult> {
     const conditions = [
-      filters.processId ? eq(witnesses.processId, filters.processId) : undefined,
+      filters.processId
+        ? eq(witnesses.processId, filters.processId)
+        : undefined,
       filters.side ? eq(witnesses.side, filters.side) : undefined,
       filters.status ? eq(witnesses.status, filters.status) : undefined,
       filters.replaced !== undefined
@@ -102,7 +101,9 @@ export class WitnessesRepository {
     return witness ?? null;
   }
 
-  async findProcessContext(processId: string): Promise<WitnessProcessContext | null> {
+  async findProcessContext(
+    processId: string,
+  ): Promise<WitnessProcessContext | null> {
     const [process] = await db
       .select({
         id: processes.id,

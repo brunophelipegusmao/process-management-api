@@ -101,7 +101,8 @@ export class WitnessesService {
 
     if (input.status && forbiddenCreateStatuses.has(input.status)) {
       throw new BadRequestException({
-        error: 'Use dedicated replacement or retirement flow for terminal status changes',
+        error:
+          'Use dedicated replacement or retirement flow for terminal status changes',
       });
     }
 
@@ -112,7 +113,7 @@ export class WitnessesService {
       address: input.address !== undefined ? mergedAddress : undefined,
       residenceComarca:
         input.residenceComarca !== undefined
-          ? (input.residenceComarca.trim() || currentWitness.residenceComarca)
+          ? input.residenceComarca.trim() || currentWitness.residenceComarca
           : undefined,
     });
 
@@ -155,7 +156,11 @@ export class WitnessesService {
           tx,
         );
 
-        await this.witnessesRepository.markAsReplaced(id, createdReplacement.id, tx);
+        await this.witnessesRepository.markAsReplaced(
+          id,
+          createdReplacement.id,
+          tx,
+        );
 
         const cancelledCount =
           await this.deadlinesRepository.cancelActiveByWitnessId(id, tx);
@@ -196,7 +201,10 @@ export class WitnessesService {
 
     const { retiredWitness, cancelledDeadlineCount } =
       await this.witnessesRepository.runInTransaction(async (tx) => {
-        const updatedWitness = await this.witnessesRepository.markAsRetired(id, tx);
+        const updatedWitness = await this.witnessesRepository.markAsRetired(
+          id,
+          tx,
+        );
 
         if (!updatedWitness) {
           throw new NotFoundException({
@@ -220,7 +228,8 @@ export class WitnessesService {
   }
 
   private async getProcessContext(processId: string) {
-    const process = await this.witnessesRepository.findProcessContext(processId);
+    const process =
+      await this.witnessesRepository.findProcessContext(processId);
 
     if (!process) {
       throw new NotFoundException({
