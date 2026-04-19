@@ -79,6 +79,14 @@ export class AuditInterceptor implements NestInterceptor {
     const method = request.method.toUpperCase();
     const path = request.url.toLowerCase();
 
+    if (
+      method === 'POST' &&
+      path.includes('/witnesses') &&
+      path.includes('/replace')
+    ) {
+      return 'REPLACE_WITNESS';
+    }
+
     if (method === 'POST' && path.includes('/processes'))
       return 'CREATE_PROCESS';
     if (method === 'PATCH' && path.includes('/processes'))

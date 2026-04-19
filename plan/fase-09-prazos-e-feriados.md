@@ -1,5 +1,9 @@
 # Fase 09 - Modulo de prazos e motor de dias uteis
 
+## Status
+
+Concluida.
+
 ## Objetivo
 
 Construir a infraestrutura de calculo de prazos e a base de feriados que sera reutilizada em todo o dominio.
@@ -42,3 +46,13 @@ Construir a infraestrutura de calculo de prazos e a base de feriados que sera re
 ## Observacoes
 
 - O desenho desta fase deve favorecer reuso por testemunhas, audiencias e jobs.
+
+## Progresso inicial concluido
+
+- DeadlinesModule implementado com controller, service e repository seguindo o padrao da fase 07.
+- HolidaysService e HolidaysRepository implementados com suporte a alimentacao manual e automatica, incluindo sobreposicao de `manual` sobre `auto` no mesmo escopo.
+- Motor reutilizavel `DeadlineCalculatorService` criado para calcular prazos em dias uteis e corridos conforme o tipo.
+- Regra GATE-4 aplicada em `DeadlinesService.create()`: testemunha substituida nao recebe novo prazo.
+- Cancelamento de prazo implementado como transicao de status para `cancelado`, sem delete fisico.
+- Endpoints HTTP adicionados para `deadlines` e `holidays`, protegidos por autenticacao e perfis internos.
+- Validacao concluida com `pnpm build`, `pnpm test` e `pnpm test:e2e` verdes.

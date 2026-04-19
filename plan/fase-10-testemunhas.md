@@ -1,5 +1,9 @@
 # Fase 10 - Modulo de testemunhas
 
+## Status
+
+Concluida.
+
 ## Objetivo
 
 Implementar o modulo mais sensivel do dominio, cobrindo cadastro, limites, substituicao, desistencias e efeitos sobre prazos.
@@ -45,3 +49,13 @@ Implementar o modulo mais sensivel do dominio, cobrindo cadastro, limites, subst
 ## Observacoes
 
 - Esta fase exige maior rigor de validacao e testes de regra de negocio.
+
+## Progresso concluido
+
+- WitnessesModule implementado com controller, service e repository.
+- GATE-1 garantido no schema compartilhado com bloqueio explicito de cpf, rg, cnh e campos equivalentes.
+- GATE-2 implementado no service com limite por courtType: vara=10 e jec=4, excluindo replaced=true e status=desistida.
+- Cadastro incompleto gera prazo dados_testemunha e prepara notificacao E1.
+- Substituicao ocorre em transacao, marca a original como substituida, cancela prazos ativos e nao reaplica o limite regular.
+- Desistencia ocorre por fluxo dedicado, cancela prazos ativos e preserva estado terminal de testemunha substituida.
+- Validacao executada com build, testes unitarios e suite e2e existente verdes.

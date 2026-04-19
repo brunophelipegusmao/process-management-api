@@ -24,6 +24,7 @@ const dateSchema = z.coerce.date();
 const optionalDateSchema = dateSchema.optional();
 const dateTimeSchema = z.coerce.date();
 const optionalDateTimeSchema = dateTimeSchema.optional();
+const optionalLooseTrimmedStringSchema = z.string().trim().optional();
 const optionalTrimmedStringSchema = z.string().trim().min(1).optional();
 const paginationSchema = z
   .object({
@@ -178,20 +179,35 @@ const witnessShape = {
   processId: uuidSchema,
   replacedById: optionalUuidSchema,
   fullName: z.string().trim().min(1),
-  address: z.string().trim().min(1),
-  residenceComarca: z.string().trim().min(1),
+  address: optionalLooseTrimmedStringSchema,
+  residenceComarca: optionalLooseTrimmedStringSchema,
   maritalStatus: optionalTrimmedStringSchema,
   profession: optionalTrimmedStringSchema,
   phone: optionalTrimmedStringSchema,
   notes: optionalTrimmedStringSchema,
   side: witnessSideSchema.default('reu'),
-  status: witnessStatusSchema.default('pendente_dados'),
+  status: witnessStatusSchema.optional(),
   replaced: z.boolean().optional(),
+};
+
+const replaceWitnessShape = {
+  fullName: z.string().trim().min(1),
+  address: optionalLooseTrimmedStringSchema,
+  residenceComarca: optionalLooseTrimmedStringSchema,
+  maritalStatus: optionalTrimmedStringSchema,
+  profession: optionalTrimmedStringSchema,
+  phone: optionalTrimmedStringSchema,
+  notes: optionalTrimmedStringSchema,
+  side: witnessSideSchema.default('reu'),
+  status: witnessStatusSchema.optional(),
 };
 
 export const createWitnessSchema = withWitnessGuards(z.object(witnessShape));
 export const updateWitnessSchema = withWitnessGuards(
   z.object(witnessShape).partial(),
+);
+export const replaceWitnessSchema = withWitnessGuards(
+  z.object(replaceWitnessShape),
 );
 export const witnessFiltersSchema = withWitnessGuards(
   paginationSchema.extend({
@@ -201,6 +217,17 @@ export const witnessFiltersSchema = withWitnessGuards(
     replaced: z.coerce.boolean().optional(),
   }),
 );
+
+const createDeadlineShape = {
+  processId: uuidSchema,
+  witnessId: optionalUuidSchema,
+  type: deadlineTypeSchema,
+  referenceDate: optionalDateSchema,
+  hearingDate: optionalDateSchema,
+  state: optionalTrimmedStringSchema,
+  municipality: optionalTrimmedStringSchema,
+  notificationSent: z.boolean().optional(),
+};
 
 const deadlineShape = {
   processId: uuidSchema,
@@ -212,8 +239,20 @@ const deadlineShape = {
 };
 
 export const createDeadlineSchema = withStrictUnknownFieldValidation(
-  z.object(deadlineShape),
-);
+  z.object(createDeadlineShape),
+).superRefine((value, context) => {
+  const requiresHearingDate =
+    value.type === 'juntada_intimacao' ||
+    value.type === 'desistencia_testemunha';
+
+  if (requiresHearingDate && !value.hearingDate) {
+    context.addIssue({
+      code: 'custom',
+      path: ['hearingDate'],
+      message: 'hearingDate is required for the selected deadline type',
+    });
+  }
+});
 export const updateDeadlineSchema = withStrictUnknownFieldValidation(
   z.object(deadlineShape).partial(),
 );
@@ -313,6 +352,7 @@ export type UpdateHearingInput = z.infer<typeof updateHearingSchema>;
 export type HearingFiltersInput = z.infer<typeof hearingFiltersSchema>;
 export type CreateWitnessInput = z.infer<typeof createWitnessSchema>;
 export type UpdateWitnessInput = z.infer<typeof updateWitnessSchema>;
+export type ReplaceWitnessInput = z.infer<typeof replaceWitnessSchema>;
 export type WitnessFiltersInput = z.infer<typeof witnessFiltersSchema>;
 export type CreateDeadlineInput = z.infer<typeof createDeadlineSchema>;
 export type UpdateDeadlineInput = z.infer<typeof updateDeadlineSchema>;

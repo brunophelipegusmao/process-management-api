@@ -1,13 +1,13 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 
 import type { ClientsRepository } from '../../clients/clients.repository';
-import type { ProcessesRepository } from '../repositories/processes.repository';
-import { ProcessesService } from '../services/processes.service';
+import type { ProcessesRepository } from './processes.repository';
+import { ProcessesService } from './processes.service';
 import type {
   CreateProcessInput,
   ProcessFiltersInput,
   UpdateProcessInput,
-} from '../../../schema/zod';
+} from '../../schema/zod';
 
 describe('ProcessesService', () => {
   let service: ProcessesService;

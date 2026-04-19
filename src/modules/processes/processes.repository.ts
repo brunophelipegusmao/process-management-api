@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { and, desc, eq, ilike, sql } from 'drizzle-orm';
 
-import { db } from '../../../infra/database/client';
-import { processes } from '../../../schema';
+import { db } from '../../infra/database/client';
+import { processes } from '../../schema';
 import type {
   CreateProcessInput,
   ProcessFiltersInput,
   UpdateProcessInput,
-} from '../../../schema/zod';
+} from '../../schema/zod';
 
 export type ProcessEntity = typeof processes.$inferSelect;
 

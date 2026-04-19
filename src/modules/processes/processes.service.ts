@@ -10,7 +10,7 @@ import type {
   ProcessFiltersInput,
   UpdateProcessInput,
 } from '../../schema/zod';
-import { ProcessesRepository } from '../repositories/processes.repository';
+import { ProcessesRepository } from './processes.repository';
 
 @Injectable()
 export class ProcessesService {

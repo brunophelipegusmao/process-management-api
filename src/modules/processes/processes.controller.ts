@@ -11,16 +11,16 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { createZodDto } from '../../../common/pipes/create-zod-dto';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { createZodDto } from '../../common/pipes/create-zod-dto';
 import {
   createProcessSchema,
   type CreateProcessInput,
   processFiltersSchema,
   type UpdateProcessInput,
   updateProcessSchema,
-} from '../../../schema/zod';
-import { ProcessesService } from '../services/processes.service';
+} from '../../schema/zod';
+import { ProcessesService } from './processes.service';
 
 const processIdParamSchema = z.object({
   id: z.string().uuid(),
