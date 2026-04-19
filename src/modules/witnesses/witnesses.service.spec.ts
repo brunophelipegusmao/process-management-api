@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 
 import type { CreateDeadlineInput } from '../../schema/zod';
+import type { EmailService } from '../../infra/email/email.service';
 import type { DeadlinesRepository } from '../deadlines/deadlines.repository';
 import type { DeadlinesService } from '../deadlines/deadlines.service';
 import type { WitnessesRepository } from './witnesses.repository';
@@ -14,6 +15,7 @@ describe('WitnessesService', () => {
   let witnessesRepository: jest.Mocked<WitnessesRepository>;
   let deadlinesService: jest.Mocked<DeadlinesService>;
   let deadlinesRepository: jest.Mocked<DeadlinesRepository>;
+  let emailService: jest.Mocked<EmailService>;
 
   beforeEach(() => {
     witnessesRepository = {
@@ -36,10 +38,15 @@ describe('WitnessesService', () => {
       cancelActiveByWitnessId: jest.fn(),
     } as unknown as jest.Mocked<DeadlinesRepository>;
 
+    emailService = {
+      sendTemplate: jest.fn(),
+    } as unknown as jest.Mocked<EmailService>;
+
     service = new WitnessesService(
       witnessesRepository,
       deadlinesService,
       deadlinesRepository,
+      emailService,
     );
   });
 
@@ -48,6 +55,9 @@ describe('WitnessesService', () => {
       id: '11111111-1111-4111-8111-111111111111',
       courtType: 'jec',
       comarca: 'Sao Paulo',
+      mentionsWitness: true,
+      cnjNumber: '0001111-11.2026.8.26.0001',
+      clientEmail: 'cliente@teste.com',
     });
     witnessesRepository.countActiveForProcess.mockResolvedValue(4);
 
@@ -76,6 +86,9 @@ describe('WitnessesService', () => {
       id: processId,
       courtType: 'vara',
       comarca: 'Campinas',
+      mentionsWitness: true,
+      cnjNumber: '0002222-22.2026.8.26.0002',
+      clientEmail: 'cliente@teste.com',
     });
     witnessesRepository.countActiveForProcess.mockResolvedValue(0);
     witnessesRepository.create.mockResolvedValue({
@@ -125,6 +138,16 @@ describe('WitnessesService', () => {
         municipality: 'Campinas',
       }),
     );
+    expect(emailService.sendTemplate).toHaveBeenCalledWith({
+      processId,
+      template: 'E1',
+      recipient: 'cliente@teste.com',
+      variables: {
+        processCode: '0002222-22.2026.8.26.0002',
+        witnessName: 'Joao Pereira',
+        dueDate: expect.any(String),
+      },
+    });
     expect(result.pendingNotifications).toEqual(['E1']);
   });
 
@@ -155,6 +178,9 @@ describe('WitnessesService', () => {
       id: processId,
       courtType: 'vara',
       comarca: 'Santos',
+      mentionsWitness: true,
+      cnjNumber: '0003333-33.2026.8.26.0003',
+      clientEmail: 'cliente@teste.com',
     });
     witnessesRepository.runInTransaction.mockImplementation(async (callback) =>
       callback(tx as never),

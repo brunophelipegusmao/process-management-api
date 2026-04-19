@@ -7,7 +7,7 @@ import {
   type DatabaseExecutor,
   type DatabaseTransaction,
 } from '../../infra/database/client';
-import { processes, witnesses } from '../../schema';
+import { clients, processes, witnesses } from '../../schema';
 import type { UpdateWitnessInput, WitnessFiltersInput } from '../../schema/zod';
 
 export type WitnessEntity = typeof witnesses.$inferSelect;
@@ -21,8 +21,10 @@ export type WitnessListResult = {
 
 export type WitnessProcessContext = Pick<
   typeof processes.$inferSelect,
-  'id' | 'courtType' | 'comarca' | 'mentionsWitness'
->;
+  'id' | 'courtType' | 'comarca' | 'mentionsWitness' | 'cnjNumber'
+> & {
+  clientEmail: string;
+};
 
 export type CreateWitnessRecordInput = {
   processId: string;
@@ -110,8 +112,11 @@ export class WitnessesRepository {
         courtType: processes.courtType,
         comarca: processes.comarca,
         mentionsWitness: processes.mentionsWitness,
+        cnjNumber: processes.cnjNumber,
+        clientEmail: clients.email,
       })
       .from(processes)
+      .innerJoin(clients, eq(clients.id, processes.clientId))
       .where(eq(processes.id, processId))
       .limit(1);
 

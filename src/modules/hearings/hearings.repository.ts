@@ -7,7 +7,7 @@ import {
   type DatabaseExecutor,
   type DatabaseTransaction,
 } from '../../infra/database/client';
-import { hearings, processes } from '../../schema';
+import { clients, hearings, processes } from '../../schema';
 import type { HearingFiltersInput, UpdateHearingInput } from '../../schema/zod';
 
 export type HearingEntity = typeof hearings.$inferSelect;
@@ -21,8 +21,10 @@ export type HearingListResult = {
 
 export type HearingProcessContext = Pick<
   typeof processes.$inferSelect,
-  'id' | 'mentionsWitness'
->;
+  'id' | 'mentionsWitness' | 'cnjNumber'
+> & {
+  clientEmail: string;
+};
 
 export type CreateHearingRecordInput = {
   processId: string;
@@ -98,8 +100,11 @@ export class HearingsRepository {
       .select({
         id: processes.id,
         mentionsWitness: processes.mentionsWitness,
+        cnjNumber: processes.cnjNumber,
+        clientEmail: clients.email,
       })
       .from(processes)
+      .innerJoin(clients, eq(clients.id, processes.clientId))
       .where(eq(processes.id, processId))
       .limit(1);
 

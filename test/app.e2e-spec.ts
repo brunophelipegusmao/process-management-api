@@ -243,6 +243,58 @@ describe('AppController (e2e)', () => {
     });
   });
 
+  it('/reports/overview (GET) returns aggregated indicators for advogado', async () => {
+    mockedGetSessionFromHeaders.mockResolvedValue({
+      user: {
+        id: '33333333-3333-4333-8333-333333333333',
+        name: 'Advogado Relatorios',
+        email: 'relatorios@teste.com',
+        profile: 'advogado',
+        active: true,
+      },
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/reports/overview',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      data: {
+        processesTotal: expect.any(Number),
+        hearingsScheduled: expect.any(Number),
+        openDeadlines: expect.any(Number),
+        overdueDeadlines: expect.any(Number),
+        pendingWitnessData: expect.any(Number),
+        emailsSent: expect.any(Number),
+      },
+    });
+  });
+
+  it('/reports/overview (GET) blocks paralegal access', async () => {
+    mockedGetSessionFromHeaders.mockResolvedValue({
+      user: {
+        id: '44444444-4444-4444-8444-444444444444',
+        name: 'Paralegal Teste',
+        email: 'paralegal@teste.com',
+        profile: 'paralegal',
+        active: true,
+      },
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/reports/overview',
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({
+      error: 'Forbidden',
+      details: 'Insufficient permissions',
+    });
+  });
+
   afterEach(async () => {
     for (const auditUserId of auditUserIds) {
       await db.delete(auditLogs).where(eq(auditLogs.userId, auditUserId));

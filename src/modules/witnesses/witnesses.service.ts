@@ -12,6 +12,7 @@ import type {
   UpdateWitnessInput,
   WitnessFiltersInput,
 } from '../../schema/zod';
+import { EmailService } from '../../infra/email/email.service';
 import { DeadlinesRepository } from '../deadlines/deadlines.repository';
 import { DeadlinesService } from '../deadlines/deadlines.service';
 import {
@@ -36,6 +37,7 @@ export class WitnessesService {
     private readonly witnessesRepository: WitnessesRepository,
     private readonly deadlinesService: DeadlinesService,
     private readonly deadlinesRepository: DeadlinesRepository,
+    private readonly emailService: EmailService,
   ) {}
 
   async findMany(filters: WitnessFiltersInput) {
@@ -334,6 +336,17 @@ export class WitnessesService {
       type: 'dados_testemunha',
       referenceDate: new Date(),
       municipality: process.comarca,
+    });
+
+    await this.emailService.sendTemplate({
+      processId: witness.processId,
+      template: 'E1',
+      recipient: process.clientEmail,
+      variables: {
+        processCode: process.cnjNumber,
+        witnessName: witness.fullName,
+        dueDate: new Date().toISOString().slice(0, 10),
+      },
     });
 
     return {

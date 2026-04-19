@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 
+import type { EmailService } from '../../infra/email/email.service';
 import type { DeadlineCalculatorService } from '../deadlines/deadline-calculator.service';
 import type { DeadlinesRepository } from '../deadlines/deadlines.repository';
 import type { WitnessesRepository } from '../witnesses/witnesses.repository';
@@ -12,6 +13,7 @@ describe('HearingsService', () => {
   let deadlinesRepository: jest.Mocked<DeadlinesRepository>;
   let witnessesRepository: jest.Mocked<WitnessesRepository>;
   let deadlineCalculatorService: jest.Mocked<DeadlineCalculatorService>;
+  let emailService: jest.Mocked<EmailService>;
 
   beforeEach(() => {
     hearingsRepository = {
@@ -38,11 +40,16 @@ describe('HearingsService', () => {
       calculate: jest.fn(),
     } as unknown as jest.Mocked<DeadlineCalculatorService>;
 
+    emailService = {
+      sendTemplate: jest.fn(),
+    } as unknown as jest.Mocked<EmailService>;
+
     service = new HearingsService(
       hearingsRepository,
       deadlinesRepository,
       witnessesRepository,
       deadlineCalculatorService,
+      emailService,
     );
   });
 
@@ -50,6 +57,8 @@ describe('HearingsService', () => {
     hearingsRepository.findProcessContext.mockResolvedValue({
       id: '11111111-1111-4111-8111-111111111111',
       mentionsWitness: true,
+      cnjNumber: '0001111-11.2026.8.26.0001',
+      clientEmail: 'cliente@teste.com',
     });
     hearingsRepository.create.mockResolvedValue({
       id: '22222222-2222-4222-8222-222222222222',
@@ -76,6 +85,8 @@ describe('HearingsService', () => {
     hearingsRepository.findProcessContext.mockResolvedValue({
       id: '11111111-1111-4111-8111-111111111111',
       mentionsWitness: true,
+      cnjNumber: '0001111-11.2026.8.26.0001',
+      clientEmail: 'cliente@teste.com',
     });
     hearingsRepository.create.mockResolvedValue({
       id: '22222222-2222-4222-8222-222222222222',
@@ -111,6 +122,12 @@ describe('HearingsService', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+    hearingsRepository.findProcessContext.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+      mentionsWitness: true,
+      cnjNumber: '0004444-44.2026.8.26.0004',
+      clientEmail: 'cliente@teste.com',
+    });
     hearingsRepository.runInTransaction.mockImplementation(async (callback) =>
       callback(tx as never),
     );
@@ -132,6 +149,15 @@ describe('HearingsService', () => {
       '11111111-1111-4111-8111-111111111111',
       tx,
     );
+    expect(emailService.sendTemplate).toHaveBeenCalledWith({
+      processId: '11111111-1111-4111-8111-111111111111',
+      template: 'E4',
+      recipient: 'cliente@teste.com',
+      variables: {
+        processCode: '0004444-44.2026.8.26.0004',
+        hearingDate: '2026-05-10T14:00:00.000Z',
+      },
+    });
     expect(result.cancelledDeadlineCount).toBe(3);
     expect(result.pendingNotifications).toEqual(['E4']);
   });
@@ -151,6 +177,12 @@ describe('HearingsService', () => {
       rescheduledTo: null,
       createdAt: new Date(),
       updatedAt: new Date(),
+    });
+    hearingsRepository.findProcessContext.mockResolvedValue({
+      id: processId,
+      mentionsWitness: true,
+      cnjNumber: '0005555-55.2026.8.26.0005',
+      clientEmail: 'cliente@teste.com',
     });
     hearingsRepository.runInTransaction.mockImplementation(async (callback) =>
       callback(tx as never),
@@ -222,6 +254,16 @@ describe('HearingsService', () => {
       state: undefined,
     });
     expect(deadlinesRepository.create).toHaveBeenCalledTimes(1);
+    expect(emailService.sendTemplate).toHaveBeenCalledWith({
+      processId,
+      template: 'E5',
+      recipient: 'cliente@teste.com',
+      variables: {
+        processCode: '0005555-55.2026.8.26.0005',
+        previousDate: '2026-05-10T14:00:00.000Z',
+        newDate: '2026-07-20T14:00:00.000Z',
+      },
+    });
     expect(result.pendingNotifications).toEqual(['E5']);
     expect(result.internalNotifications).toEqual([
       'WITNESSES_ALREADY_INTIMATED_RESCHEDULED_OVER_30_DAYS',

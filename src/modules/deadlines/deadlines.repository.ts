@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
 import { db, type DatabaseExecutor } from '../../infra/database/client';
 import { deadlines, processes, witnesses } from '../../schema';
@@ -171,6 +171,56 @@ export class DeadlinesRepository {
       .orderBy(desc(deadlines.createdAt));
   }
 
+  async findOpenDueOnOrBefore(
+    dueDate: Date,
+    executor: DatabaseExecutor = db,
+  ): Promise<DeadlineEntity[]> {
+    return executor
+      .select()
+      .from(deadlines)
+      .where(
+        and(
+          eq(deadlines.status, 'aberto'),
+          lte(deadlines.dueDate, toDateColumnValue(dueDate)),
+        ),
+      )
+      .orderBy(desc(deadlines.createdAt));
+  }
+
+  async findOpenDueOn(
+    dueDate: Date,
+    executor: DatabaseExecutor = db,
+  ): Promise<DeadlineEntity[]> {
+    return executor
+      .select()
+      .from(deadlines)
+      .where(
+        and(
+          eq(deadlines.status, 'aberto'),
+          eq(deadlines.notificationSent, false),
+          eq(deadlines.dueDate, toDateColumnValue(dueDate)),
+        ),
+      )
+      .orderBy(desc(deadlines.createdAt));
+  }
+
+  async findPendingJuntadaIntimacaoDueOn(
+    dueDate: Date,
+    executor: DatabaseExecutor = db,
+  ): Promise<DeadlineEntity[]> {
+    return executor
+      .select()
+      .from(deadlines)
+      .where(
+        and(
+          eq(deadlines.type, 'juntada_intimacao'),
+          eq(deadlines.notificationSent, false),
+          eq(deadlines.dueDate, toDateColumnValue(dueDate)),
+        ),
+      )
+      .orderBy(desc(deadlines.createdAt));
+  }
+
   async update(
     id: string,
     input: UpdateDeadlineInput,
@@ -239,5 +289,45 @@ export class DeadlinesRepository {
       .returning({ id: deadlines.id });
 
     return cancelledDeadlines.length;
+  }
+
+  async markAsOverdueByIds(
+    deadlineIds: string[],
+    executor: DatabaseExecutor = db,
+  ): Promise<number> {
+    if (deadlineIds.length === 0) {
+      return 0;
+    }
+
+    const updatedDeadlines = await executor
+      .update(deadlines)
+      .set({
+        status: 'vencido',
+        updatedAt: new Date(),
+      })
+      .where(inArray(deadlines.id, deadlineIds))
+      .returning({ id: deadlines.id });
+
+    return updatedDeadlines.length;
+  }
+
+  async markNotificationSentByIds(
+    deadlineIds: string[],
+    executor: DatabaseExecutor = db,
+  ): Promise<number> {
+    if (deadlineIds.length === 0) {
+      return 0;
+    }
+
+    const updatedDeadlines = await executor
+      .update(deadlines)
+      .set({
+        notificationSent: true,
+        updatedAt: new Date(),
+      })
+      .where(inArray(deadlines.id, deadlineIds))
+      .returning({ id: deadlines.id });
+
+    return updatedDeadlines.length;
   }
 }

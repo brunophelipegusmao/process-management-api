@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthGuard } from './common/guards/auth.guard';
@@ -8,6 +9,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { ResponseEnvelopeInterceptor } from './common/interceptors/response-envelope.interceptor';
 import { ZodValidationPipe } from './common/pipes/zod-validation.pipe';
 import { HearingsModule } from './modules/hearings/hearings.module';
+import { JobsModule } from './jobs/jobs.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { DeadlinesModule } from './modules/deadlines/deadlines.module';
 import { ProcessesModule } from './modules/processes/processes.module';
@@ -18,12 +20,14 @@ import { RolesGuard } from './common/guards/roles.guard';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ClientsModule,
     UsersModule,
     ProcessesModule,
     DeadlinesModule,
     WitnessesModule,
     HearingsModule,
+    JobsModule,
     ReportsModule,
   ],
   controllers: [AppController],

@@ -29,6 +29,9 @@ const betterAuthBasePath = normalizeBasePath(
 );
 const betterAuthBaseUrl =
   process.env.BETTER_AUTH_URL ?? `http://localhost:${normalizedPort}`;
+const emailProvider = process.env.EMAIL_PROVIDER ?? 'console';
+const emailFrom =
+  process.env.EMAIL_FROM ?? 'nao-responda@gestaoprocessual.local';
 
 export const appEnv = {
   port: normalizedPort,
@@ -40,5 +43,9 @@ export const appEnv = {
     secret: betterAuthSecret,
     basePath: betterAuthBasePath,
     baseUrl: betterAuthBaseUrl,
+  },
+  email: {
+    provider: emailProvider,
+    from: emailFrom,
   },
 } as const;

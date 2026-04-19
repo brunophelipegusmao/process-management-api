@@ -9,6 +9,7 @@ import type {
   HearingFiltersInput,
   UpdateHearingInput,
 } from '../../schema/zod';
+import { EmailService } from '../../infra/email/email.service';
 import { DeadlineCalculatorService } from '../deadlines/deadline-calculator.service';
 import { DeadlinesRepository } from '../deadlines/deadlines.repository';
 import { WitnessesRepository } from '../witnesses/witnesses.repository';
@@ -50,6 +51,7 @@ export class HearingsService {
     private readonly deadlinesRepository: DeadlinesRepository,
     private readonly witnessesRepository: WitnessesRepository,
     private readonly deadlineCalculatorService: DeadlineCalculatorService,
+    private readonly emailService: EmailService,
   ) {}
 
   async findMany(filters: HearingFiltersInput) {
@@ -125,6 +127,7 @@ export class HearingsService {
 
   async cancel(id: string): Promise<HearingMutationResult> {
     const currentHearing = await this.findById(id);
+    const process = await this.getProcessContext(currentHearing.processId);
 
     const result = await this.hearingsRepository.runInTransaction(
       async (tx) => {
@@ -157,6 +160,16 @@ export class HearingsService {
       },
     );
 
+    await this.emailService.sendTemplate({
+      processId: currentHearing.processId,
+      template: 'E4',
+      recipient: process.clientEmail,
+      variables: {
+        processCode: process.cnjNumber,
+        hearingDate: currentHearing.dateTime.toISOString(),
+      },
+    });
+
     return result;
   }
 
@@ -165,6 +178,7 @@ export class HearingsService {
     input: RescheduleInput,
   ): Promise<HearingMutationResult> {
     const currentHearing = await this.findById(id);
+    const process = await this.getProcessContext(currentHearing.processId);
     const activeDeadlines =
       await this.deadlinesRepository.findActiveByProcessId(
         currentHearing.processId,
@@ -246,6 +260,17 @@ export class HearingsService {
         };
       },
     );
+
+    await this.emailService.sendTemplate({
+      processId: currentHearing.processId,
+      template: 'E5',
+      recipient: process.clientEmail,
+      variables: {
+        processCode: process.cnjNumber,
+        previousDate: currentHearing.dateTime.toISOString(),
+        newDate: input.dateTime.toISOString(),
+      },
+    });
 
     return result;
   }
