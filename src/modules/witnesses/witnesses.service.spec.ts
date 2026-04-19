@@ -35,6 +35,7 @@ describe('WitnessesService', () => {
     } as unknown as jest.Mocked<DeadlinesService>;
 
     deadlinesRepository = {
+      findMany: jest.fn(),
       cancelActiveByWitnessId: jest.fn(),
     } as unknown as jest.Mocked<DeadlinesRepository>;
 
@@ -318,5 +319,157 @@ describe('WitnessesService', () => {
         notes: 'nao deveria atualizar',
       }),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
+  });
+
+  it('creates PROVIDENCIA_CLIENTE and sends E3 on first negative witness outcome', async () => {
+    const processId = '11111111-1111-4111-8111-111111111111';
+    const witnessId = '88888888-8888-4888-8888-888888888888';
+
+    witnessesRepository.findById.mockResolvedValue({
+      id: witnessId,
+      processId,
+      replacedById: null,
+      fullName: 'Luciana Prado',
+      address: 'Rua E',
+      residenceComarca: 'Campinas',
+      maritalStatus: null,
+      profession: null,
+      phone: null,
+      notes: null,
+      side: 'reu',
+      status: 'intimada',
+      replaced: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    witnessesRepository.update.mockResolvedValue({
+      id: witnessId,
+      processId,
+      replacedById: null,
+      fullName: 'Luciana Prado',
+      address: 'Rua E',
+      residenceComarca: 'Campinas',
+      maritalStatus: null,
+      profession: null,
+      phone: null,
+      notes: null,
+      side: 'reu',
+      status: 'intimacao_negativa',
+      replaced: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    deadlinesRepository.findMany.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 1,
+    });
+    witnessesRepository.findProcessContext.mockResolvedValue({
+      id: processId,
+      courtType: 'vara',
+      comarca: 'Campinas',
+      mentionsWitness: true,
+      cnjNumber: '0008888-88.2026.8.26.0008',
+      clientEmail: 'cliente@teste.com',
+    });
+
+    const result = await service.update(witnessId, {
+      status: 'intimacao_negativa',
+    });
+
+    expect(deadlinesRepository.findMany).toHaveBeenCalledWith({
+      witnessId,
+      type: 'providencia_cliente',
+      status: 'aberto',
+      page: 1,
+      pageSize: 1,
+    });
+    expect(deadlinesService.create).toHaveBeenCalledWith({
+      processId,
+      witnessId,
+      type: 'providencia_cliente',
+      referenceDate: expect.any(Date),
+      municipality: 'Campinas',
+    });
+    expect(emailService.sendTemplate).toHaveBeenCalledWith({
+      processId,
+      template: 'E3',
+      recipient: 'cliente@teste.com',
+      variables: {
+        processCode: '0008888-88.2026.8.26.0008',
+        nextAction:
+          'avaliar providencias do cliente sobre a testemunha Luciana Prado',
+      },
+    });
+    expect(result.pendingNotifications).toEqual(['E3']);
+  });
+
+  it('does not recreate PROVIDENCIA_CLIENTE when the follow-up deadline is already open', async () => {
+    const processId = '11111111-1111-4111-8111-111111111111';
+    const witnessId = '99999999-9999-4999-8999-999999999999';
+
+    witnessesRepository.findById.mockResolvedValue({
+      id: witnessId,
+      processId,
+      replacedById: null,
+      fullName: 'Marina Costa',
+      address: 'Rua F',
+      residenceComarca: 'Campinas',
+      maritalStatus: null,
+      profession: null,
+      phone: null,
+      notes: null,
+      side: 'reu',
+      status: 'intimada',
+      replaced: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    witnessesRepository.update.mockResolvedValue({
+      id: witnessId,
+      processId,
+      replacedById: null,
+      fullName: 'Marina Costa',
+      address: 'Rua F',
+      residenceComarca: 'Campinas',
+      maritalStatus: null,
+      profession: null,
+      phone: null,
+      notes: null,
+      side: 'reu',
+      status: 'aguardando_cliente',
+      replaced: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    deadlinesRepository.findMany.mockResolvedValue({
+      items: [
+        {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          processId,
+          witnessId,
+          type: 'providencia_cliente',
+          dueDate: '2026-05-10',
+          status: 'aberto',
+          notificationSent: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 1,
+    });
+
+    const result = await service.update(witnessId, {
+      status: 'aguardando_cliente',
+    });
+
+    expect(deadlinesService.create).not.toHaveBeenCalled();
+    expect(emailService.sendTemplate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ template: 'E3' }),
+    );
+    expect(result.pendingNotifications).toBeUndefined();
   });
 });

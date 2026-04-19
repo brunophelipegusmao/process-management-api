@@ -30,6 +30,10 @@ type WitnessMutationResult = WitnessEntity & {
 
 const terminalStatuses = new Set(['substituida']);
 const forbiddenCreateStatuses = new Set(['substituida', 'desistida']);
+const clientFollowUpStatuses = new Set<WitnessEntity['status']>([
+  'intimacao_negativa',
+  'aguardando_cliente',
+]);
 
 @Injectable()
 export class WitnessesService {
@@ -125,7 +129,7 @@ export class WitnessesService {
       });
     }
 
-    return updatedWitness;
+    return this.attachClientFollowUpSideEffects(currentWitness, updatedWitness);
   }
 
   async replace(
@@ -352,6 +356,56 @@ export class WitnessesService {
     return {
       ...witness,
       pendingNotifications: ['E1'],
+    };
+  }
+
+  private async attachClientFollowUpSideEffects(
+    previousWitness: WitnessEntity,
+    witness: WitnessEntity,
+  ): Promise<WitnessMutationResult> {
+    if (!clientFollowUpStatuses.has(witness.status)) {
+      return witness;
+    }
+
+    if (clientFollowUpStatuses.has(previousWitness.status)) {
+      return witness;
+    }
+
+    const existingDeadlines = await this.deadlinesRepository.findMany({
+      witnessId: witness.id,
+      type: 'providencia_cliente',
+      status: 'aberto',
+      page: 1,
+      pageSize: 1,
+    });
+
+    if (existingDeadlines.total > 0) {
+      return witness;
+    }
+
+    const process = await this.getProcessContext(witness.processId);
+
+    await this.deadlinesService.create({
+      processId: witness.processId,
+      witnessId: witness.id,
+      type: 'providencia_cliente',
+      referenceDate: new Date(),
+      municipality: process.comarca,
+    });
+
+    await this.emailService.sendTemplate({
+      processId: witness.processId,
+      template: 'E3',
+      recipient: process.clientEmail,
+      variables: {
+        processCode: process.cnjNumber,
+        nextAction: `avaliar providencias do cliente sobre a testemunha ${witness.fullName}`,
+      },
+    });
+
+    return {
+      ...witness,
+      pendingNotifications: ['E3'],
     };
   }
 }
