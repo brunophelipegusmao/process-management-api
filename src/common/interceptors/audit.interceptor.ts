@@ -81,6 +81,14 @@ export class AuditInterceptor implements NestInterceptor {
 
     if (
       method === 'POST' &&
+      path.includes('/hearings') &&
+      path.includes('/reschedule')
+    ) {
+      return 'RESCHEDULE_HEARING';
+    }
+
+    if (
+      method === 'POST' &&
       path.includes('/witnesses') &&
       path.includes('/replace')
     ) {

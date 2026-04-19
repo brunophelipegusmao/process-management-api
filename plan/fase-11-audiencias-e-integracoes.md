@@ -1,5 +1,7 @@
 # Fase 11 - Modulo de audiencias e integracoes de negocio
 
+Status: concluida
+
 ## Objetivo
 
 Implementar audiencias e acionar os efeitos cruzados sobre testemunhas, prazos e comunicacoes.
@@ -42,3 +44,7 @@ Implementar audiencias e acionar os efeitos cruzados sobre testemunhas, prazos e
 ## Observacoes
 
 - Esta fase consolida o comportamento dinamico entre modulos de dominio.
+- Implementacao concluida com HearingsController, HearingsService e HearingsRepository.
+- Cancelamento de audiencia passou a cancelar prazos abertos do processo e retornar marcador E4.
+- Redesignacao passou a cancelar prazos abertos, recriar prazos relativos a audiencia e retornar marcador E5.
+- Reagendamento acima de 30 dias com testemunhas intimadas gera notificacao interna preparada no retorno do service.

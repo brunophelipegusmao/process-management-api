@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, desc, eq, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 
 import {
   db,
@@ -130,6 +130,29 @@ export class WitnessesRepository {
           eq(witnesses.processId, processId),
           eq(witnesses.replaced, false),
           ne(witnesses.status, 'desistida'),
+        ),
+      );
+
+    return result?.total ?? 0;
+  }
+
+  async countByProcessAndStatuses(
+    processId: string,
+    statuses: WitnessEntity['status'][],
+    executor: DatabaseExecutor = db,
+  ): Promise<number> {
+    if (statuses.length === 0) {
+      return 0;
+    }
+
+    const [result] = await executor
+      .select({ total: sql<number>`count(*)::int` })
+      .from(witnesses)
+      .where(
+        and(
+          eq(witnesses.processId, processId),
+          inArray(witnesses.status, statuses),
+          eq(witnesses.replaced, false),
         ),
       );
 

@@ -158,6 +158,19 @@ export class DeadlinesRepository {
     return deadline;
   }
 
+  async findActiveByProcessId(
+    processId: string,
+    executor: DatabaseExecutor = db,
+  ): Promise<DeadlineEntity[]> {
+    return executor
+      .select()
+      .from(deadlines)
+      .where(
+        and(eq(deadlines.processId, processId), eq(deadlines.status, 'aberto')),
+      )
+      .orderBy(desc(deadlines.createdAt));
+  }
+
   async update(
     id: string,
     input: UpdateDeadlineInput,
@@ -204,6 +217,24 @@ export class DeadlinesRepository {
       })
       .where(
         and(eq(deadlines.witnessId, witnessId), eq(deadlines.status, 'aberto')),
+      )
+      .returning({ id: deadlines.id });
+
+    return cancelledDeadlines.length;
+  }
+
+  async cancelActiveByProcessId(
+    processId: string,
+    executor: DatabaseExecutor = db,
+  ): Promise<number> {
+    const cancelledDeadlines = await executor
+      .update(deadlines)
+      .set({
+        status: 'cancelado',
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(deadlines.processId, processId), eq(deadlines.status, 'aberto')),
       )
       .returning({ id: deadlines.id });
 
