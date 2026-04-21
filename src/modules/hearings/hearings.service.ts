@@ -10,6 +10,7 @@ import type {
   UpdateHearingInput,
 } from '../../schema/zod';
 import { EmailService } from '../../infra/email/email.service';
+import { InternalNotificationService } from '../../infra/email/internal-notification.service';
 import { DeadlineCalculatorService } from '../deadlines/deadline-calculator.service';
 import { DeadlinesRepository } from '../deadlines/deadlines.repository';
 import { WitnessesRepository } from '../witnesses/witnesses.repository';
@@ -52,6 +53,7 @@ export class HearingsService {
     private readonly witnessesRepository: WitnessesRepository,
     private readonly deadlineCalculatorService: DeadlineCalculatorService,
     private readonly emailService: EmailService,
+    private readonly internalNotificationService: InternalNotificationService,
   ) {}
 
   async findMany(filters: HearingFiltersInput) {
@@ -271,6 +273,15 @@ export class HearingsService {
         newDate: input.dateTime.toISOString(),
       },
     });
+
+    if (result.internalNotifications?.length) {
+      await this.internalNotificationService.notifyRecipients({
+        processId: currentHearing.processId,
+        processCode: process.cnjNumber,
+        message:
+          'Audiencia redesignada acima de 30 dias com testemunhas ja intimadas',
+      });
+    }
 
     return result;
   }

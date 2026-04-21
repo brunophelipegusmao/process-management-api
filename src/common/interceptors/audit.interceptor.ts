@@ -90,6 +90,14 @@ export class AuditInterceptor implements NestInterceptor {
     if (
       method === 'POST' &&
       path.includes('/witnesses') &&
+      path.includes('/intimation')
+    ) {
+      return 'UPDATE_WITNESS';
+    }
+
+    if (
+      method === 'POST' &&
+      path.includes('/witnesses') &&
       path.includes('/replace')
     ) {
       return 'REPLACE_WITNESS';

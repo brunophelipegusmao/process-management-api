@@ -76,6 +76,14 @@ export const holidayTypeSchema = z.enum(holidayTypeValues);
 export const holidaySourceSchema = z.enum(holidaySourceValues);
 export const emailTemplateSchema = z.enum(emailTemplateValues);
 export const actionTypeSchema = z.enum(actionTypeValues);
+export const witnessIntimationMethodSchema = z.enum([
+  'carta_simples',
+  'carta_precatoria',
+  'sala_passiva',
+  'mandado',
+  'whatsapp',
+]);
+export const witnessIntimationOutcomeSchema = z.enum(['positive', 'negative']);
 
 const userShape = {
   name: z.string().trim().min(1),
@@ -209,6 +217,37 @@ export const updateWitnessSchema = withWitnessGuards(
 export const replaceWitnessSchema = withWitnessGuards(
   z.object(replaceWitnessShape),
 );
+export const witnessIntimationRequestSchema = withStrictUnknownFieldValidation(
+  z.object({
+    method: witnessIntimationMethodSchema,
+    hearingDate: optionalDateTimeSchema,
+    sentAt: optionalDateTimeSchema,
+  }),
+).superRefine((value, context) => {
+  if (value.method === 'carta_simples' && !value.hearingDate) {
+    context.addIssue({
+      code: 'custom',
+      path: ['hearingDate'],
+      message: 'hearingDate is required for carta_simples intimation',
+    });
+  }
+});
+export const witnessIntimationOutcomeRequestSchema =
+  withStrictUnknownFieldValidation(
+    z.object({
+      outcome: witnessIntimationOutcomeSchema,
+      hearingDate: optionalDateTimeSchema,
+      occurredAt: optionalDateTimeSchema,
+    }),
+  ).superRefine((value, context) => {
+    if (value.outcome === 'positive' && !value.hearingDate) {
+      context.addIssue({
+        code: 'custom',
+        path: ['hearingDate'],
+        message: 'hearingDate is required for positive intimation outcome',
+      });
+    }
+  });
 export const witnessFiltersSchema = withWitnessGuards(
   paginationSchema.extend({
     processId: optionalUuidSchema,
@@ -353,6 +392,12 @@ export type HearingFiltersInput = z.infer<typeof hearingFiltersSchema>;
 export type CreateWitnessInput = z.infer<typeof createWitnessSchema>;
 export type UpdateWitnessInput = z.infer<typeof updateWitnessSchema>;
 export type ReplaceWitnessInput = z.infer<typeof replaceWitnessSchema>;
+export type WitnessIntimationRequestInput = z.infer<
+  typeof witnessIntimationRequestSchema
+>;
+export type WitnessIntimationOutcomeRequestInput = z.infer<
+  typeof witnessIntimationOutcomeRequestSchema
+>;
 export type WitnessFiltersInput = z.infer<typeof witnessFiltersSchema>;
 export type CreateDeadlineInput = z.infer<typeof createDeadlineSchema>;
 export type UpdateDeadlineInput = z.infer<typeof updateDeadlineSchema>;

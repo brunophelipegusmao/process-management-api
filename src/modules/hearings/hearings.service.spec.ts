@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 
 import type { EmailService } from '../../infra/email/email.service';
+import type { InternalNotificationService } from '../../infra/email/internal-notification.service';
 import type { DeadlineCalculatorService } from '../deadlines/deadline-calculator.service';
 import type { DeadlinesRepository } from '../deadlines/deadlines.repository';
 import type { WitnessesRepository } from '../witnesses/witnesses.repository';
@@ -14,6 +15,7 @@ describe('HearingsService', () => {
   let witnessesRepository: jest.Mocked<WitnessesRepository>;
   let deadlineCalculatorService: jest.Mocked<DeadlineCalculatorService>;
   let emailService: jest.Mocked<EmailService>;
+  let internalNotificationService: jest.Mocked<InternalNotificationService>;
 
   beforeEach(() => {
     hearingsRepository = {
@@ -44,12 +46,17 @@ describe('HearingsService', () => {
       sendTemplate: jest.fn(),
     } as unknown as jest.Mocked<EmailService>;
 
+    internalNotificationService = {
+      notifyRecipients: jest.fn(),
+    } as unknown as jest.Mocked<InternalNotificationService>;
+
     service = new HearingsService(
       hearingsRepository,
       deadlinesRepository,
       witnessesRepository,
       deadlineCalculatorService,
       emailService,
+      internalNotificationService,
     );
   });
 
@@ -268,6 +275,12 @@ describe('HearingsService', () => {
     expect(result.internalNotifications).toEqual([
       'WITNESSES_ALREADY_INTIMATED_RESCHEDULED_OVER_30_DAYS',
     ]);
+    expect(internalNotificationService.notifyRecipients).toHaveBeenCalledWith({
+      processId,
+      processCode: '0005555-55.2026.8.26.0005',
+      message:
+        'Audiencia redesignada acima de 30 dias com testemunhas ja intimadas',
+    });
   });
 
   it('rejects cancel when hearing does not exist', async () => {

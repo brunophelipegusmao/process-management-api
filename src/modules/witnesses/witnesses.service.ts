@@ -10,7 +10,9 @@ import type {
   CreateWitnessInput,
   ReplaceWitnessInput,
   UpdateWitnessInput,
+  WitnessIntimationOutcomeRequestInput,
   WitnessFiltersInput,
+  WitnessIntimationRequestInput,
 } from '../../schema/zod';
 import { EmailService } from '../../infra/email/email.service';
 import { DeadlinesRepository } from '../deadlines/deadlines.repository';
@@ -26,6 +28,13 @@ type WitnessMutationResult = WitnessEntity & {
   cancelledDeadlineCount?: number;
   replacedWitnessId?: string;
   pendingNotifications?: Array<'E1' | 'E3'>;
+  intimationMethod?:
+    | 'carta_simples'
+    | 'carta_precatoria'
+    | 'sala_passiva'
+    | 'mandado'
+    | 'whatsapp';
+  intimationTimestamp?: string;
 };
 
 const terminalStatuses = new Set(['substituida']);
@@ -233,6 +242,105 @@ export class WitnessesService {
     };
   }
 
+  async requestIntimation(
+    id: string,
+    input: WitnessIntimationRequestInput,
+  ): Promise<WitnessMutationResult> {
+    const currentWitness = await this.findById(id);
+
+    this.assertMutableWitness(currentWitness);
+
+    const process = await this.getProcessContext(currentWitness.processId);
+    const sentAt = input.sentAt ?? new Date();
+    const nextNotes = this.appendOperationalNote(
+      currentWitness.notes,
+      `Intimacao via ${input.method} registrada em ${sentAt.toISOString()}`,
+    );
+
+    const updatedWitness = await this.witnessesRepository.update(id, {
+      status: 'intimada',
+      notes: nextNotes,
+    });
+
+    if (!updatedWitness) {
+      throw new NotFoundException({
+        error: 'Witness not found',
+      });
+    }
+
+    if (input.method === 'carta_precatoria') {
+      await this.ensureOpenDeadline({
+        processId: updatedWitness.processId,
+        witnessId: updatedWitness.id,
+        type: 'custas_precatoria',
+        referenceDate: sentAt,
+        municipality: process.comarca,
+      });
+    }
+
+    if (input.method === 'carta_simples' && input.hearingDate) {
+      await this.ensureOpenDeadline({
+        processId: updatedWitness.processId,
+        witnessId: updatedWitness.id,
+        type: 'juntada_intimacao',
+        hearingDate: input.hearingDate,
+        municipality: process.comarca,
+      });
+    }
+
+    return {
+      ...updatedWitness,
+      intimationMethod: input.method,
+      intimationTimestamp: sentAt.toISOString(),
+    };
+  }
+
+  async registerIntimationOutcome(
+    id: string,
+    input: WitnessIntimationOutcomeRequestInput,
+  ): Promise<WitnessMutationResult> {
+    const currentWitness = await this.findById(id);
+
+    this.assertMutableWitness(currentWitness);
+
+    const occurredAt = input.occurredAt ?? new Date();
+    const nextStatus =
+      input.outcome === 'positive'
+        ? 'intimacao_positiva'
+        : 'intimacao_negativa';
+    const nextNotes = this.appendOperationalNote(
+      currentWitness.notes,
+      `Resultado da intimacao ${input.outcome === 'positive' ? 'positivo' : 'negativo'} registrado em ${occurredAt.toISOString()}`,
+    );
+
+    const updatedWitness = await this.witnessesRepository.update(id, {
+      status: nextStatus,
+      notes: nextNotes,
+    });
+
+    if (!updatedWitness) {
+      throw new NotFoundException({
+        error: 'Witness not found',
+      });
+    }
+
+    if (input.outcome === 'positive') {
+      const process = await this.getProcessContext(updatedWitness.processId);
+
+      await this.ensureOpenDeadline({
+        processId: updatedWitness.processId,
+        witnessId: updatedWitness.id,
+        type: 'juntada_intimacao',
+        hearingDate: input.hearingDate,
+        municipality: process.comarca,
+      });
+
+      return updatedWitness;
+    }
+
+    return this.attachClientFollowUpSideEffects(currentWitness, updatedWitness);
+  }
+
   private async getProcessContext(processId: string) {
     const process =
       await this.witnessesRepository.findProcessContext(processId);
@@ -324,6 +432,49 @@ export class WitnessesService {
 
   private resolveStatus(address: string) {
     return address.trim().length > 0 ? 'dados_completos' : 'pendente_dados';
+  }
+
+  private async ensureOpenDeadline(input: {
+    processId: string;
+    witnessId: string;
+    type: 'custas_precatoria' | 'juntada_intimacao';
+    referenceDate?: Date;
+    hearingDate?: Date;
+    municipality: string;
+  }) {
+    const existingDeadlines = await this.deadlinesRepository.findMany({
+      witnessId: input.witnessId,
+      type: input.type,
+      status: 'aberto',
+      page: 1,
+      pageSize: 1,
+    });
+
+    if (existingDeadlines.total > 0) {
+      return;
+    }
+
+    await this.deadlinesService.create({
+      processId: input.processId,
+      witnessId: input.witnessId,
+      type: input.type,
+      referenceDate: input.referenceDate,
+      hearingDate: input.hearingDate,
+      municipality: input.municipality,
+    });
+  }
+
+  private appendOperationalNote(
+    currentNotes: string | null,
+    nextEntry: string,
+  ) {
+    const base = currentNotes?.trim();
+
+    if (!base) {
+      return nextEntry;
+    }
+
+    return `${base}\n${nextEntry}`;
   }
 
   private async attachIncompleteSideEffects(

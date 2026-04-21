@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { InternalNotificationService } from '../infra/email/internal-notification.service';
 
-import { DeadlinesRepository } from '../modules/deadlines/deadlines.repository';
+import {
+  DeadlinesRepository,
+  type DeadlineEntity,
+} from '../modules/deadlines/deadlines.repository';
 import { JobsRepository } from './jobs.repository';
 
 function startOfUtcDay(date: Date) {
@@ -30,6 +34,7 @@ export class DeadlinesJob {
   constructor(
     private readonly deadlinesRepository: DeadlinesRepository,
     private readonly jobsRepository: JobsRepository,
+    private readonly internalNotificationService: InternalNotificationService,
   ) {}
 
   @Cron('0 7 * * *', {
@@ -45,7 +50,7 @@ export class DeadlinesJob {
     const tomorrow = addDays(today, 1);
     const failedSteps: string[] = [];
 
-    const overdueCount = await this.runStep<number>(
+    const overdueDeadlines = await this.runStep<DeadlineEntity[]>(
       'markOverdueDeadlines',
       failedSteps,
       async (tx) => {
@@ -53,7 +58,7 @@ export class DeadlinesJob {
           await this.deadlinesRepository.findOpenDueOnOrBefore(today, tx);
 
         if (overdueDeadlines.length === 0) {
-          return 0;
+          return [];
         }
 
         await this.deadlinesRepository.markAsOverdueByIds(
@@ -61,11 +66,16 @@ export class DeadlinesJob {
           tx,
         );
 
-        return overdueDeadlines.length;
+        return overdueDeadlines;
       },
     );
+    const overdueCount = overdueDeadlines.length;
+    await this.notifyByProcess(
+      overdueDeadlines,
+      (count) => `${count} prazo(s) vencido(s) exigem atuacao imediata`,
+    );
 
-    const preventiveAlertCount = await this.runStep<number>(
+    const preventiveAlertDeadlines = await this.runStep<DeadlineEntity[]>(
       'notifyDeadlinesDueTomorrow',
       failedSteps,
       async (tx) => {
@@ -75,7 +85,7 @@ export class DeadlinesJob {
         );
 
         if (upcomingDeadlines.length === 0) {
-          return 0;
+          return [];
         }
 
         await this.deadlinesRepository.markNotificationSentByIds(
@@ -83,11 +93,16 @@ export class DeadlinesJob {
           tx,
         );
 
-        return upcomingDeadlines.length;
+        return upcomingDeadlines;
       },
     );
+    const preventiveAlertCount = preventiveAlertDeadlines.length;
+    await this.notifyByProcess(
+      preventiveAlertDeadlines,
+      (count) => `${count} prazo(s) vencem amanha e precisam de acompanhamento`,
+    );
 
-    const hearingAlertCount = await this.runStep<number>(
+    const hearingAlertDeadlines = await this.runStep<DeadlineEntity[]>(
       'notifyJuntadaIntimacao',
       failedSteps,
       async (tx) => {
@@ -98,7 +113,7 @@ export class DeadlinesJob {
           );
 
         if (hearingDeadlines.length === 0) {
-          return 0;
+          return [];
         }
 
         await this.deadlinesRepository.markNotificationSentByIds(
@@ -106,8 +121,14 @@ export class DeadlinesJob {
           tx,
         );
 
-        return hearingDeadlines.length;
+        return hearingDeadlines;
       },
+    );
+    const hearingAlertCount = hearingAlertDeadlines.length;
+    await this.notifyByProcess(
+      hearingAlertDeadlines,
+      (count) =>
+        `${count} prazo(s) de juntada de intimacao atingiram a data de acao`,
     );
 
     await this.runStep<number>('appendAuditLog', failedSteps, async (tx) => {
@@ -154,7 +175,31 @@ export class DeadlinesJob {
       failedSteps.push(stepName);
       const message = error instanceof Error ? error.message : 'unknown error';
       this.logger.error(`job-prazos step=${stepName} failed: ${message}`);
-      return 0 as T;
+      return [] as T;
     }
+  }
+
+  private async notifyByProcess(
+    deadlines: DeadlineEntity[],
+    buildMessage: (count: number) => string,
+  ) {
+    const countsByProcess = deadlines.reduce<Record<string, number>>(
+      (accumulator, deadline) => {
+        accumulator[deadline.processId] =
+          (accumulator[deadline.processId] ?? 0) + 1;
+
+        return accumulator;
+      },
+      {},
+    );
+
+    await Promise.all(
+      Object.entries(countsByProcess).map(([processId, count]) =>
+        this.internalNotificationService.notifyRecipients({
+          processId,
+          message: buildMessage(count),
+        }),
+      ),
+    );
   }
 }

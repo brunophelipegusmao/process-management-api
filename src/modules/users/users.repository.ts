@@ -82,6 +82,19 @@ export class UsersRepository {
     return user ?? null;
   }
 
+  async findActiveNotificationRecipients(): Promise<UserEntity[]> {
+    return db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.active, true),
+          sql`${users.profile} in ('superadmin', 'advogado')`,
+        ),
+      )
+      .orderBy(desc(users.createdAt));
+  }
+
   async create(input: CreateUserInput): Promise<UserEntity> {
     const [user] = await db.insert(users).values(input).returning();
     return user;

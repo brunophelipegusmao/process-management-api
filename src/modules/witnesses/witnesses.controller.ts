@@ -20,6 +20,10 @@ import {
   type ReplaceWitnessInput,
   type UpdateWitnessInput,
   updateWitnessSchema,
+  type WitnessIntimationOutcomeRequestInput,
+  type WitnessIntimationRequestInput,
+  witnessIntimationOutcomeRequestSchema,
+  witnessIntimationRequestSchema,
   witnessFiltersSchema,
 } from '../../schema/zod';
 import { WitnessesService } from './witnesses.service';
@@ -32,6 +36,12 @@ class WitnessIdParamDto extends createZodDto(witnessIdParamSchema) {}
 class CreateWitnessBodyDto extends createZodDto(createWitnessSchema) {}
 class UpdateWitnessBodyDto extends createZodDto(updateWitnessSchema) {}
 class ReplaceWitnessBodyDto extends createZodDto(replaceWitnessSchema) {}
+class WitnessIntimationRequestBodyDto extends createZodDto(
+  witnessIntimationRequestSchema,
+) {}
+class WitnessIntimationOutcomeRequestBodyDto extends createZodDto(
+  witnessIntimationOutcomeRequestSchema,
+) {}
 class WitnessFiltersQueryDto extends createZodDto(witnessFiltersSchema) {}
 
 @ApiTags('witnesses')
@@ -82,6 +92,30 @@ export class WitnessesController {
     return this.witnessesService.replace(
       params.id,
       body as ReplaceWitnessInput,
+    );
+  }
+
+  @ApiOperation({ summary: 'Registra o envio da intimacao da testemunha' })
+  @Post(':id/intimation')
+  requestIntimation(
+    @Param() params: WitnessIdParamDto,
+    @Body() body: WitnessIntimationRequestBodyDto,
+  ) {
+    return this.witnessesService.requestIntimation(
+      params.id,
+      body as WitnessIntimationRequestInput,
+    );
+  }
+
+  @ApiOperation({ summary: 'Registra o resultado da intimacao da testemunha' })
+  @Post(':id/intimation/outcome')
+  registerIntimationOutcome(
+    @Param() params: WitnessIdParamDto,
+    @Body() body: WitnessIntimationOutcomeRequestBodyDto,
+  ) {
+    return this.witnessesService.registerIntimationOutcome(
+      params.id,
+      body as WitnessIntimationOutcomeRequestInput,
     );
   }
 

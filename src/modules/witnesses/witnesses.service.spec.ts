@@ -27,6 +27,7 @@ describe('WitnessesService', () => {
       update: jest.fn(),
       markAsReplaced: jest.fn(),
       markAsRetired: jest.fn(),
+      countByProcessAndStatuses: jest.fn(),
       runInTransaction: jest.fn(),
     } as unknown as jest.Mocked<WitnessesRepository>;
 
@@ -403,6 +404,153 @@ describe('WitnessesService', () => {
       },
     });
     expect(result.pendingNotifications).toEqual(['E3']);
+  });
+
+  it('registers carta_precatoria intimation and creates CUSTAS_PRECATORIA once', async () => {
+    const processId = '10111111-1111-4111-8111-111111111111';
+    const witnessId = '20222222-2222-4222-8222-222222222222';
+
+    witnessesRepository.findById.mockResolvedValue({
+      id: witnessId,
+      processId,
+      replacedById: null,
+      fullName: 'Paula Almeida',
+      address: 'Rua G',
+      residenceComarca: 'Campinas',
+      maritalStatus: null,
+      profession: null,
+      phone: null,
+      notes: null,
+      side: 'reu',
+      status: 'dados_completos',
+      replaced: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    witnessesRepository.findProcessContext.mockResolvedValue({
+      id: processId,
+      courtType: 'vara',
+      comarca: 'Campinas',
+      mentionsWitness: true,
+      cnjNumber: '0009999-99.2026.8.26.0009',
+      clientEmail: 'cliente@teste.com',
+    });
+    witnessesRepository.update.mockResolvedValue({
+      id: witnessId,
+      processId,
+      replacedById: null,
+      fullName: 'Paula Almeida',
+      address: 'Rua G',
+      residenceComarca: 'Campinas',
+      maritalStatus: null,
+      profession: null,
+      phone: null,
+      notes: 'Intimacao via carta_precatoria registrada em 2026-04-20T12:00:00.000Z',
+      side: 'reu',
+      status: 'intimada',
+      replaced: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    deadlinesRepository.findMany.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 1,
+    });
+
+    const result = await service.requestIntimation(witnessId, {
+      method: 'carta_precatoria',
+      sentAt: new Date('2026-04-20T12:00:00.000Z'),
+    });
+
+    expect(witnessesRepository.update).toHaveBeenCalledWith(
+      witnessId,
+      expect.objectContaining({
+        status: 'intimada',
+        notes: expect.stringContaining('carta_precatoria'),
+      }),
+    );
+    expect(deadlinesService.create).toHaveBeenCalledWith({
+      processId,
+      witnessId,
+      type: 'custas_precatoria',
+      referenceDate: new Date('2026-04-20T12:00:00.000Z'),
+      hearingDate: undefined,
+      municipality: 'Campinas',
+    });
+    expect(result.intimationMethod).toBe('carta_precatoria');
+  });
+
+  it('registers positive intimation outcome and creates JUNTADA_INTIMACAO', async () => {
+    const processId = '30111111-1111-4111-8111-111111111111';
+    const witnessId = '30222222-2222-4222-8222-222222222222';
+    const hearingDate = new Date('2026-06-30T14:00:00.000Z');
+
+    witnessesRepository.findById.mockResolvedValue({
+      id: witnessId,
+      processId,
+      replacedById: null,
+      fullName: 'Rita Gomes',
+      address: 'Rua H',
+      residenceComarca: 'Campinas',
+      maritalStatus: null,
+      profession: null,
+      phone: null,
+      notes: null,
+      side: 'reu',
+      status: 'intimada',
+      replaced: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    witnessesRepository.findProcessContext.mockResolvedValue({
+      id: processId,
+      courtType: 'vara',
+      comarca: 'Campinas',
+      mentionsWitness: true,
+      cnjNumber: '0003030-30.2026.8.26.0030',
+      clientEmail: 'cliente@teste.com',
+    });
+    witnessesRepository.update.mockResolvedValue({
+      id: witnessId,
+      processId,
+      replacedById: null,
+      fullName: 'Rita Gomes',
+      address: 'Rua H',
+      residenceComarca: 'Campinas',
+      maritalStatus: null,
+      profession: null,
+      phone: null,
+      notes: 'Resultado da intimacao positivo registrado em 2026-04-20T13:00:00.000Z',
+      side: 'reu',
+      status: 'intimacao_positiva',
+      replaced: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    deadlinesRepository.findMany.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 1,
+    });
+
+    const result = await service.registerIntimationOutcome(witnessId, {
+      outcome: 'positive',
+      hearingDate,
+      occurredAt: new Date('2026-04-20T13:00:00.000Z'),
+    });
+
+    expect(deadlinesService.create).toHaveBeenCalledWith({
+      processId,
+      witnessId,
+      type: 'juntada_intimacao',
+      referenceDate: undefined,
+      hearingDate,
+      municipality: 'Campinas',
+    });
+    expect(result.status).toBe('intimacao_positiva');
   });
 
   it('does not recreate PROVIDENCIA_CLIENTE when the follow-up deadline is already open', async () => {
