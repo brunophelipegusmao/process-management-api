@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 import type { CreateDeadlineInput } from '../../schema/zod';
-import { HolidaysService } from '../holydays/holidays.service';
+import { HolidaysService } from '../holidays/holidays.service';
 
 export type DeadlineCalculationInput = {
   type: CreateDeadlineInput['type'];

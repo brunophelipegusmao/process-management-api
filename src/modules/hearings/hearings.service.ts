@@ -13,6 +13,7 @@ import { EmailService } from '../../infra/email/email.service';
 import { InternalNotificationService } from '../../infra/email/internal-notification.service';
 import { DeadlineCalculatorService } from '../deadlines/deadline-calculator.service';
 import { DeadlinesRepository } from '../deadlines/deadlines.repository';
+import { auditContext } from '../../common/interceptors/audit-context';
 import { WitnessesRepository } from '../witnesses/witnesses.repository';
 import {
   HearingsRepository,
@@ -106,6 +107,7 @@ export class HearingsService {
     input: UpdateHearingInput,
   ): Promise<HearingMutationResult> {
     const currentHearing = await this.findById(id);
+    auditContext.setPreviousData(currentHearing);
 
     if (input.status === 'cancelada' || input.status === 'redesignada') {
       throw new BadRequestException({
@@ -129,6 +131,7 @@ export class HearingsService {
 
   async cancel(id: string): Promise<HearingMutationResult> {
     const currentHearing = await this.findById(id);
+    auditContext.setPreviousData(currentHearing);
     const process = await this.getProcessContext(currentHearing.processId);
 
     const result = await this.hearingsRepository.runInTransaction(
@@ -180,6 +183,7 @@ export class HearingsService {
     input: RescheduleInput,
   ): Promise<HearingMutationResult> {
     const currentHearing = await this.findById(id);
+    auditContext.setPreviousData(currentHearing);
     const process = await this.getProcessContext(currentHearing.processId);
     const activeDeadlines =
       await this.deadlinesRepository.findActiveByProcessId(

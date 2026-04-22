@@ -8,7 +8,17 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+  ApiUnprocessableEntityResponse,
+} from '@nestjs/swagger';
 import { z } from 'zod';
 
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -45,6 +55,8 @@ export class HearingsController {
   constructor(private readonly hearingsService: HearingsService) {}
 
   @ApiOperation({ summary: 'Lista audiencias com filtros opcionais' })
+  @ApiOkResponse({ description: 'Lista de audiencias retornada com sucesso.' })
+  @ApiUnauthorizedResponse({ description: 'Sessao ausente ou invalida.' })
   @Get()
   async findMany(@Query() query: HearingFiltersQueryDto) {
     const result = await this.hearingsService.findMany(
@@ -58,18 +70,30 @@ export class HearingsController {
   }
 
   @ApiOperation({ summary: 'Recupera uma audiencia pelo identificador' })
+  @ApiOkResponse({ description: 'Audiencia encontrada.' })
+  @ApiUnauthorizedResponse({ description: 'Sessao ausente ou invalida.' })
+  @ApiBadRequestResponse({ description: 'ID invalido.' })
+  @ApiNotFoundResponse({ description: 'Audiencia nao encontrada.' })
   @Get(':id')
   findById(@Param() params: HearingIdParamDto) {
     return this.hearingsService.findById(params.id);
   }
 
   @ApiOperation({ summary: 'Cria uma audiencia para um processo' })
+  @ApiCreatedResponse({ description: 'Audiencia criada com sucesso.' })
+  @ApiUnauthorizedResponse({ description: 'Sessao ausente ou invalida.' })
+  @ApiBadRequestResponse({ description: 'Payload invalido.' })
+  @ApiNotFoundResponse({ description: 'Processo nao encontrado.' })
   @Post()
   create(@Body() body: CreateHearingBodyDto) {
     return this.hearingsService.create(body as CreateHearingInput);
   }
 
   @ApiOperation({ summary: 'Atualiza dados gerais de uma audiencia' })
+  @ApiOkResponse({ description: 'Audiencia atualizada com sucesso.' })
+  @ApiUnauthorizedResponse({ description: 'Sessao ausente ou invalida.' })
+  @ApiBadRequestResponse({ description: 'Payload ou ID invalido.' })
+  @ApiNotFoundResponse({ description: 'Audiencia nao encontrada.' })
   @Patch(':id')
   update(
     @Param() params: HearingIdParamDto,
@@ -79,6 +103,11 @@ export class HearingsController {
   }
 
   @ApiOperation({ summary: 'Registra a redesignacao de uma audiencia' })
+  @ApiCreatedResponse({ description: 'Audiencia redesignada e novos prazos gerados.' })
+  @ApiUnauthorizedResponse({ description: 'Sessao ausente ou invalida.' })
+  @ApiBadRequestResponse({ description: 'Payload ou ID invalido.' })
+  @ApiNotFoundResponse({ description: 'Audiencia nao encontrada.' })
+  @ApiUnprocessableEntityResponse({ description: 'Audiencia ja cancelada nao pode ser redesignada.' })
   @Post(':id/reschedule')
   reschedule(
     @Param() params: HearingIdParamDto,
@@ -90,6 +119,10 @@ export class HearingsController {
   }
 
   @ApiOperation({ summary: 'Cancela uma audiencia e os prazos vinculados' })
+  @ApiOkResponse({ description: 'Audiencia cancelada e prazos vinculados cancelados.' })
+  @ApiUnauthorizedResponse({ description: 'Sessao ausente ou invalida.' })
+  @ApiBadRequestResponse({ description: 'ID invalido.' })
+  @ApiNotFoundResponse({ description: 'Audiencia nao encontrada.' })
   @Delete(':id')
   remove(@Param() params: HearingIdParamDto) {
     return this.hearingsService.cancel(params.id);

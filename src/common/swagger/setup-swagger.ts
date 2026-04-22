@@ -8,6 +8,7 @@ export function setupSwagger(app: INestApplication): void {
       'API REST para gerenciamento de processos, audiencias, testemunhas, prazos e relatorios.',
     )
     .setVersion('0.0.1')
+    .addBearerAuth()
     .addTag('health', 'Verificacao basica da aplicacao')
     .build();
 

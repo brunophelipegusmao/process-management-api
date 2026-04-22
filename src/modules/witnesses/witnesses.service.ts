@@ -17,6 +17,7 @@ import type {
 import { EmailService } from '../../infra/email/email.service';
 import { DeadlinesRepository } from '../deadlines/deadlines.repository';
 import { DeadlinesService } from '../deadlines/deadlines.service';
+import { auditContext } from '../../common/interceptors/audit-context';
 import {
   WitnessesRepository,
   type CreateWitnessRecordInput,
@@ -92,6 +93,13 @@ export class WitnessesService {
     );
 
     const process = await this.getProcessContext(input.processId);
+
+    if (!process.mentionsWitness) {
+      throw new UnprocessableEntityException({
+        error: 'Process does not mention witnesses',
+      });
+    }
+
     await this.assertLimitAvailable(process);
 
     const record = this.toCreateRecord(input, process);
@@ -105,6 +113,7 @@ export class WitnessesService {
     input: UpdateWitnessInput,
   ): Promise<WitnessMutationResult> {
     const currentWitness = await this.findById(id);
+    auditContext.setPreviousData(currentWitness);
 
     this.assertMutableWitness(currentWitness);
 

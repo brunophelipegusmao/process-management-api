@@ -1,5 +1,5 @@
 import { HolidaySyncJob } from './holiday-sync.job';
-import type { HolidaysService } from '../modules/holydays/holidays.service';
+import type { HolidaysService } from '../modules/holidays/holidays.service';
 
 describe('HolidaySyncJob', () => {
   let job: HolidaySyncJob;
@@ -56,7 +56,7 @@ describe('HolidaySyncJob', () => {
   });
 });
 import { HolidaySyncJob } from './holiday-sync.job';
-import type { HolidaysService } from '../modules/holydays/holidays.service';
+import type { HolidaysService } from '../modules/holidays/holidays.service';
 
 describe('HolidaySyncJob', () => {
   let job: HolidaySyncJob;

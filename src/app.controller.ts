@@ -36,6 +36,28 @@ export class AppController {
     return this.appService.getHello();
   }
 
+  @ApiOperation({ summary: 'Health check dedicado — compativel com monitoramento' })
+  @ApiOkResponse({
+    description: 'Aplicacao saudavel.',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'ok' },
+        uptime: { type: 'number', example: 123.45 },
+        timestamp: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @Public()
+  @Get('health')
+  getHealth() {
+    return {
+      status: 'ok',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Retorna o usuario autenticado da sessao atual' })
   @ApiOkResponse({

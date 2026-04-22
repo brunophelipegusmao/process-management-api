@@ -9,6 +9,7 @@ import { mergeMap } from 'rxjs/operators';
 
 import { auditLogs, type actionTypeValues } from '../../schema';
 import { db } from '../../infra/database/client';
+import { auditContext } from './audit-context';
 
 type ActionType = (typeof actionTypeValues)[number];
 
@@ -33,13 +34,18 @@ export class AuditInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    return next
-      .handle()
-      .pipe(
-        mergeMap((data) =>
-          from(this.persistAuditLog(request, actionType, data)),
-        ),
-      );
+    return new Observable((observer) => {
+      auditContext.run(() => {
+        next
+          .handle()
+          .pipe(
+            mergeMap((data) =>
+              from(this.persistAuditLog(request, actionType, data)),
+            ),
+          )
+          .subscribe(observer);
+      });
+    });
   }
 
   private async persistAuditLog(
@@ -52,6 +58,7 @@ export class AuditInterceptor implements NestInterceptor {
       processId: this.resolveProcessId(request, data),
       actionType,
       description: `${request.method} ${request.url}`,
+      previousData: auditContext.getPreviousData() ?? null,
       newData: this.toRecord(data),
     });
 

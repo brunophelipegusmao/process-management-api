@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 
 import { ClientsRepository } from '../clients/clients.repository';
+import { auditContext } from '../../common/interceptors/audit-context';
 import type {
   CreateProcessInput,
   ProcessFiltersInput,
@@ -64,6 +65,7 @@ export class ProcessesService {
 
   async update(id: string, input: UpdateProcessInput) {
     const currentProcess = await this.findById(id);
+    auditContext.setPreviousData(currentProcess);
 
     if (input.clientId) {
       await this.ensureClientExists(input.clientId);
@@ -85,7 +87,8 @@ export class ProcessesService {
   }
 
   async remove(id: string) {
-    await this.findById(id);
+    const currentProcess = await this.findById(id);
+    auditContext.setPreviousData(currentProcess);
 
     const process = await this.processesRepository.remove(id);
 

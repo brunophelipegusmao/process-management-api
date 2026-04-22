@@ -8,6 +8,8 @@ import {
 } from '../modules/deadlines/deadlines.repository';
 import { JobsRepository } from './jobs.repository';
 
+const ACK_PENDING_THRESHOLD_DAYS = 7;
+
 function startOfUtcDay(date: Date) {
   return new Date(
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
@@ -24,6 +26,7 @@ type DeadlineJobResult = {
   overdueCount: number;
   preventiveAlertCount: number;
   hearingAlertCount: number;
+  pendingAckAlertCount: number;
   failedSteps: string[];
 };
 
@@ -131,6 +134,21 @@ export class DeadlinesJob {
         `${count} prazo(s) de juntada de intimacao atingiram a data de acao`,
     );
 
+    const ackThreshold = addDays(today, -ACK_PENDING_THRESHOLD_DAYS);
+    const pendingAckEmails = await this.runStep<{ processId: string }[]>(
+      'notifyPendingAcknowledgments',
+      failedSteps,
+      async () => {
+        return this.jobsRepository.findPendingAcknowledgments(ackThreshold);
+      },
+    );
+    const pendingAckAlertCount = pendingAckEmails.length;
+    await this.notifyByProcess(
+      pendingAckEmails,
+      (count) =>
+        `${count} e-mail(s) sem confirmacao de recebimento ha mais de ${ACK_PENDING_THRESHOLD_DAYS} dias`,
+    );
+
     await this.runStep<number>('appendAuditLog', failedSteps, async (tx) => {
       await this.jobsRepository.createAuditLog(
         {
@@ -141,6 +159,7 @@ export class DeadlinesJob {
             overdueCount,
             preventiveAlertCount,
             hearingAlertCount,
+            pendingAckAlertCount,
             failedSteps,
           },
         },
@@ -151,13 +170,14 @@ export class DeadlinesJob {
     });
 
     this.logger.log(
-      `job-prazos completed overdueCount=${overdueCount} preventiveAlertCount=${preventiveAlertCount} hearingAlertCount=${hearingAlertCount}`,
+      `job-prazos completed overdueCount=${overdueCount} preventiveAlertCount=${preventiveAlertCount} hearingAlertCount=${hearingAlertCount} pendingAckAlertCount=${pendingAckAlertCount}`,
     );
 
     return {
       overdueCount,
       preventiveAlertCount,
       hearingAlertCount,
+      pendingAckAlertCount,
       failedSteps,
     };
   }
@@ -180,14 +200,12 @@ export class DeadlinesJob {
   }
 
   private async notifyByProcess(
-    deadlines: DeadlineEntity[],
+    items: Array<{ processId: string }>,
     buildMessage: (count: number) => string,
   ) {
-    const countsByProcess = deadlines.reduce<Record<string, number>>(
-      (accumulator, deadline) => {
-        accumulator[deadline.processId] =
-          (accumulator[deadline.processId] ?? 0) + 1;
-
+    const countsByProcess = items.reduce<Record<string, number>>(
+      (accumulator, item) => {
+        accumulator[item.processId] = (accumulator[item.processId] ?? 0) + 1;
         return accumulator;
       },
       {},

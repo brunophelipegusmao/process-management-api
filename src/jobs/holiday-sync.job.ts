@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 
-import { HolidaysService } from '../modules/holydays/holidays.service';
+import { HolidaysService } from '../modules/holidays/holidays.service';
 
 type BrasilApiHoliday = {
   date: string;
