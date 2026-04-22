@@ -67,22 +67,22 @@ Critério de status:
 
 ## 5. Padrões Obrigatórios
 
-| Item                                        | Status       | Evidência                                                              | Observação                                                       |
-| ------------------------------------------- | ------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| FastifyAdapter no bootstrap                 | Implementado | src/main.ts#L12-L15                                                    | Conforme contrato.                                               |
-| CORS configurado via FastifyAdapter options | Ausente      | src/main.ts                                                            | Não foi encontrada configuração explícita de CORS.               |
-| ZodValidationPipe global                    | Implementado | src/app.module.ts                                                      | Pipe global registrado via APP_PIPE.                             |
-| AuthGuard global                            | Implementado | src/app.module.ts                                                      | Guard global registrado.                                         |
-| Exceção pública para health                 | Parcial      | src/app.controller.ts                                                  | Rota pública existe em barra raiz, não em /health.               |
-| Exceção pública para auth/login             | Divergente   | src/modules/auth/auth.ts, test/app.e2e-spec.ts                         | Auth pública existe em /auth com BetterAuth, não em /auth/login. |
-| RolesGuard e @Roles                         | Implementado | src/app.module.ts, controllers                                         | Regras por perfil aplicadas.                                     |
-| @CurrentUser                                | Implementado | src/common/decorators/current-user.decorator.ts, src/app.controller.ts | Decorator em uso.                                                |
-| AuditInterceptor grava após sucesso         | Implementado | src/common/interceptors/audit.interceptor.ts                           | Persistência acontece no fluxo após handle com mergeMap.         |
-| Audit captura previous_data e new_data      | Parcial      | src/common/interceptors/audit.interceptor.ts                           | Só grava newData; previousData não é capturado.                  |
-| postgres.js pool                            | Implementado | src/infra/database/client.ts                                           | Uso de postgres.js com pool.                                     |
-| Migrations com drizzle-kit                  | Implementado | package.json, migrations                                               | Scripts e migrations presentes.                                  |
-| Formatação de erros Zod                     | Implementado | src/common/pipes/zod-validation.pipe.ts                                | Retorna lista de field e message.                                |
-| GlobalExceptionFilter                       | Implementado | src/common/filters/global-exception.filter.ts                          | Mapeia erro para payload padronizado.                            |
+| Item                                        | Status       | Evidência                                                              | Observação                                                         |
+| ------------------------------------------- | ------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| FastifyAdapter no bootstrap                 | Implementado | src/main.ts#L12-L15                                                    | Conforme contrato.                                                 |
+| CORS configurado via FastifyAdapter options | Implementado | src/main.ts, src/config/app-env.ts                                     | CORS habilitado via bootstrap com origens explícitas por ambiente. |
+| ZodValidationPipe global                    | Implementado | src/app.module.ts                                                      | Pipe global registrado via APP_PIPE.                               |
+| AuthGuard global                            | Implementado | src/app.module.ts                                                      | Guard global registrado.                                           |
+| Exceção pública para health                 | Parcial      | src/app.controller.ts                                                  | Rota pública existe em barra raiz, não em /health.                 |
+| Exceção pública para auth/login             | Divergente   | src/modules/auth/auth.ts, test/app.e2e-spec.ts                         | Auth pública existe em /auth com BetterAuth, não em /auth/login.   |
+| RolesGuard e @Roles                         | Implementado | src/app.module.ts, controllers                                         | Regras por perfil aplicadas.                                       |
+| @CurrentUser                                | Implementado | src/common/decorators/current-user.decorator.ts, src/app.controller.ts | Decorator em uso.                                                  |
+| AuditInterceptor grava após sucesso         | Implementado | src/common/interceptors/audit.interceptor.ts                           | Persistência acontece no fluxo após handle com mergeMap.           |
+| Audit captura previous_data e new_data      | Parcial      | src/common/interceptors/audit.interceptor.ts                           | Só grava newData; previousData não é capturado.                    |
+| postgres.js pool                            | Implementado | src/infra/database/client.ts                                           | Uso de postgres.js com pool.                                       |
+| Migrations com drizzle-kit                  | Implementado | package.json, migrations                                               | Scripts e migrations presentes.                                    |
+| Formatação de erros Zod                     | Implementado | src/common/pipes/zod-validation.pipe.ts                                | Retorna lista de field e message.                                  |
+| GlobalExceptionFilter                       | Implementado | src/common/filters/global-exception.filter.ts                          | Mapeia erro para payload padronizado.                              |
 
 ## 6. Regras de Negócio
 
@@ -115,13 +115,13 @@ Critério de status:
 
 ### 6.4 Intimação
 
-| Item                                            | Status  | Evidência                                  | Observação                                                                                 |
-| ----------------------------------------------- | ------- | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| Métodos de intimação modelados                  | Implementado | src/modules/witnesses/witnesses.controller.ts, src/modules/witnesses/witnesses.service.ts, src/schema/zod/index.ts | Há endpoints, schemas e orquestração explícita para carta_simples, carta_precatoria, sala_passiva, mandado e whatsapp. |
-| CUSTAS_PRECATORIA gerado quando aplicável       | Implementado | src/modules/witnesses/witnesses.service.ts | requestIntimation gera CUSTAS_PRECATORIA quando o método é carta_precatoria. |
-| JUNTADA_INTIMACAO gerado por resultado positivo | Implementado | src/modules/witnesses/witnesses.service.ts | registerIntimationOutcome cria JUNTADA_INTIMACAO no resultado positivo e evita duplicação. |
-| PROVIDENCIA_CLIENTE + E3 por resultado negativo | Implementado | src/modules/witnesses/witnesses.service.ts | O resultado negativo passou a ser modelado por endpoint dedicado e reaproveita a orquestração já existente de PROVIDENCIA_CLIENTE + E3. |
-| Registro de data e hora no caso whatsapp        | Parcial | src/modules/witnesses/witnesses.service.ts | O envio é registrado com timestamp em notes e audit log; ainda não há campos dedicados no schema da witness. |
+| Item                                            | Status       | Evidência                                                                                                          | Observação                                                                                                                              |
+| ----------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Métodos de intimação modelados                  | Implementado | src/modules/witnesses/witnesses.controller.ts, src/modules/witnesses/witnesses.service.ts, src/schema/zod/index.ts | Há endpoints, schemas e orquestração explícita para carta_simples, carta_precatoria, sala_passiva, mandado e whatsapp.                  |
+| CUSTAS_PRECATORIA gerado quando aplicável       | Implementado | src/modules/witnesses/witnesses.service.ts                                                                         | requestIntimation gera CUSTAS_PRECATORIA quando o método é carta_precatoria.                                                            |
+| JUNTADA_INTIMACAO gerado por resultado positivo | Implementado | src/modules/witnesses/witnesses.service.ts                                                                         | registerIntimationOutcome cria JUNTADA_INTIMACAO no resultado positivo e evita duplicação.                                              |
+| PROVIDENCIA_CLIENTE + E3 por resultado negativo | Implementado | src/modules/witnesses/witnesses.service.ts                                                                         | O resultado negativo passou a ser modelado por endpoint dedicado e reaproveita a orquestração já existente de PROVIDENCIA_CLIENTE + E3. |
+| Registro de data e hora no caso whatsapp        | Parcial      | src/modules/witnesses/witnesses.service.ts                                                                         | O envio é registrado com timestamp em notes e audit log; ainda não há campos dedicados no schema da witness.                            |
 
 ### 6.5 Audiência Cancelamento
 
@@ -133,12 +133,12 @@ Critério de status:
 
 ### 6.6 Audiência Redesignação
 
-| Item                                                              | Status       | Evidência                                | Observação                                                               |
-| ----------------------------------------------------------------- | ------------ | ---------------------------------------- | ------------------------------------------------------------------------ |
-| hearing.status redesignada e rescheduled_to                       | Implementado | src/modules/hearings/hearings.service.ts | status e rescheduledTo atualizados.                                      |
-| Todos os deadlines vinculados cancelados                          | Implementado | src/modules/hearings/hearings.service.ts | cancelActiveByProcessId é chamado.                                       |
-| Dispara E5                                                        | Implementado | src/modules/hearings/hearings.service.ts | emailService com template E5.                                            |
-| Gera novos deadlines pela nova data                               | Parcial      | src/modules/hearings/hearings.service.ts | Recria apenas os deadlines baseados em audiência já existentes.          |
+| Item                                                              | Status       | Evidência                                                                                  | Observação                                                                                       |
+| ----------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| hearing.status redesignada e rescheduled_to                       | Implementado | src/modules/hearings/hearings.service.ts                                                   | status e rescheduledTo atualizados.                                                              |
+| Todos os deadlines vinculados cancelados                          | Implementado | src/modules/hearings/hearings.service.ts                                                   | cancelActiveByProcessId é chamado.                                                               |
+| Dispara E5                                                        | Implementado | src/modules/hearings/hearings.service.ts                                                   | emailService com template E5.                                                                    |
+| Gera novos deadlines pela nova data                               | Parcial      | src/modules/hearings/hearings.service.ts                                                   | Recria apenas os deadlines baseados em audiência já existentes.                                  |
 | Notificação interna se delta maior que 30 e testemunhas intimadas | Implementado | src/modules/hearings/hearings.service.ts, src/infra/email/internal-notification.service.ts | Além do marcador interno no retorno, agora há envio efetivo de E6 para usuários internos ativos. |
 
 ### 6.7 Prazos e Dias Úteis
@@ -155,30 +155,30 @@ Critério de status:
 
 ## 7. Jobs
 
-| Item                                  | Status       | Evidência                                | Observação                                                                    |
-| ------------------------------------- | ------------ | ---------------------------------------- | ----------------------------------------------------------------------------- |
-| JOB-PRAZOS agenda 07h diário          | Implementado | src/jobs/deadlines.job.ts                | Cron correto.                                                                 |
-| Passo 1 marca aberto e vencido        | Implementado | src/jobs/deadlines.job.ts                | Implementado.                                                                 |
-| Passo 1 gera notificação interna      | Implementado | src/jobs/deadlines.job.ts, src/infra/email/internal-notification.service.ts | O job agora agrupa por processo e envia E6 para os destinatários internos ativos. |
+| Item                                  | Status       | Evidência                                                                   | Observação                                                                            |
+| ------------------------------------- | ------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| JOB-PRAZOS agenda 07h diário          | Implementado | src/jobs/deadlines.job.ts                                                   | Cron correto.                                                                         |
+| Passo 1 marca aberto e vencido        | Implementado | src/jobs/deadlines.job.ts                                                   | Implementado.                                                                         |
+| Passo 1 gera notificação interna      | Implementado | src/jobs/deadlines.job.ts, src/infra/email/internal-notification.service.ts | O job agora agrupa por processo e envia E6 para os destinatários internos ativos.     |
 | Passo 2 alerta preventivo para amanhã | Implementado | src/jobs/deadlines.job.ts, src/infra/email/internal-notification.service.ts | O job continua marcando notificationSent e agora também envia alerta interno efetivo. |
-| Passo 3 notifica JUNTADA_INTIMACAO    | Implementado | src/jobs/deadlines.job.ts, src/infra/email/internal-notification.service.ts | O job envia a notificação operacional e persiste o envio via email E6. |
-| Passo 4 insere audit log JOB_PRAZOS   | Implementado | src/jobs/deadlines.job.ts                | createAuditLog é chamado.                                                     |
-| Passos isolados por transação         | Implementado | src/jobs/deadlines.job.ts                | runStep usa transação própria.                                                |
-| JOB-FERIADOS mensal 06h dia 1         | Implementado | src/jobs/holiday-sync.job.ts             | Cron correto.                                                                 |
-| BrasilAPI ano atual e seguinte        | Implementado | src/jobs/holiday-sync.job.ts             | Busca dois anos.                                                              |
-| source=auto não sobrescreve manual    | Implementado | src/modules/holydays/holidays.service.ts | Regra respeitada no create.                                                   |
+| Passo 3 notifica JUNTADA_INTIMACAO    | Implementado | src/jobs/deadlines.job.ts, src/infra/email/internal-notification.service.ts | O job envia a notificação operacional e persiste o envio via email E6.                |
+| Passo 4 insere audit log JOB_PRAZOS   | Implementado | src/jobs/deadlines.job.ts                                                   | createAuditLog é chamado.                                                             |
+| Passos isolados por transação         | Implementado | src/jobs/deadlines.job.ts                                                   | runStep usa transação própria.                                                        |
+| JOB-FERIADOS mensal 06h dia 1         | Implementado | src/jobs/holiday-sync.job.ts                                                | Cron correto.                                                                         |
+| BrasilAPI ano atual e seguinte        | Implementado | src/jobs/holiday-sync.job.ts                                                | Busca dois anos.                                                                      |
+| source=auto não sobrescreve manual    | Implementado | src/modules/holydays/holidays.service.ts                                    | Regra respeitada no create.                                                           |
 
 ## 8. Módulos
 
-| Módulo          | Status       | Evidência             | Observação                                                                      |
-| --------------- | ------------ | --------------------- | ------------------------------------------------------------------------------- |
-| ProcessesModule | Implementado | src/modules/processes | CNJ único no service/repository.                                                |
-| HearingsModule  | Implementado | src/modules/hearings  | Regras principais presentes.                                                    |
+| Módulo          | Status       | Evidência             | Observação                                                                                        |
+| --------------- | ------------ | --------------------- | ------------------------------------------------------------------------------------------------- |
+| ProcessesModule | Implementado | src/modules/processes | CNJ único no service/repository.                                                                  |
+| HearingsModule  | Implementado | src/modules/hearings  | Regras principais presentes.                                                                      |
 | WitnessesModule | Implementado | src/modules/witnesses | Gates, substituição, desistência, fluxo explícito de intimação e resultado agora estão modelados. |
-| DeadlinesModule | Implementado | src/modules/deadlines | Motor de prazo funcional.                                                       |
-| ClientsModule   | Implementado | src/modules/clients   | E-mail único tratado no service.                                                |
-| UsersModule     | Implementado | src/modules/users     | Perfis e bloqueio de superadmin presentes.                                      |
-| ReportsModule   | Implementado | src/modules/reports   | Acesso restrito a advogado e superadmin.                                        |
+| DeadlinesModule | Implementado | src/modules/deadlines | Motor de prazo funcional.                                                                         |
+| ClientsModule   | Implementado | src/modules/clients   | E-mail único tratado no service.                                                                  |
+| UsersModule     | Implementado | src/modules/users     | Perfis e bloqueio de superadmin presentes.                                                        |
+| ReportsModule   | Implementado | src/modules/reports   | Acesso restrito a advogado e superadmin.                                                          |
 
 ## 9. Entidades e Schema
 
@@ -232,4 +232,4 @@ Critério de status:
 
 ### Ausente
 
-- configuração explícita de CORS no bootstrap
+- nenhuma lacuna ausente adicional após implementação do CORS explícito no bootstrap

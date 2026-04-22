@@ -14,6 +14,11 @@ async function bootstrap() {
     new FastifyAdapter(),
   );
 
+  app.enableCors({
+    origin: appEnv.cors.allowedOrigins,
+    credentials: true,
+  });
+
   await registerAuthRoutes(app);
   setupSwagger(app);
 

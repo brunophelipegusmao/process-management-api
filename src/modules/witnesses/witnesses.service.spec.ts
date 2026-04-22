@@ -445,7 +445,8 @@ describe('WitnessesService', () => {
       maritalStatus: null,
       profession: null,
       phone: null,
-      notes: 'Intimacao via carta_precatoria registrada em 2026-04-20T12:00:00.000Z',
+      notes:
+        'Intimacao via carta_precatoria registrada em 2026-04-20T12:00:00.000Z',
       side: 'reu',
       status: 'intimada',
       replaced: false,
@@ -522,7 +523,8 @@ describe('WitnessesService', () => {
       maritalStatus: null,
       profession: null,
       phone: null,
-      notes: 'Resultado da intimacao positivo registrado em 2026-04-20T13:00:00.000Z',
+      notes:
+        'Resultado da intimacao positivo registrado em 2026-04-20T13:00:00.000Z',
       side: 'reu',
       status: 'intimacao_positiva',
       replaced: false,

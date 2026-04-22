@@ -100,27 +100,24 @@ describe('DeadlinesJob', () => {
     expect(result.overdueCount).toBe(1);
     expect(result.preventiveAlertCount).toBe(1);
     expect(result.hearingAlertCount).toBe(1);
-    expect(internalNotificationService.notifyRecipients).toHaveBeenNthCalledWith(
-      1,
-      {
-        processId: 'p1',
-        message: '1 prazo(s) vencido(s) exigem atuacao imediata',
-      },
-    );
-    expect(internalNotificationService.notifyRecipients).toHaveBeenNthCalledWith(
-      2,
-      {
-        processId: 'p1',
-        message: '1 prazo(s) vencem amanha e precisam de acompanhamento',
-      },
-    );
-    expect(internalNotificationService.notifyRecipients).toHaveBeenNthCalledWith(
-      3,
-      {
-        processId: 'p1',
-        message: '1 prazo(s) de juntada de intimacao atingiram a data de acao',
-      },
-    );
+    expect(
+      internalNotificationService.notifyRecipients,
+    ).toHaveBeenNthCalledWith(1, {
+      processId: 'p1',
+      message: '1 prazo(s) vencido(s) exigem atuacao imediata',
+    });
+    expect(
+      internalNotificationService.notifyRecipients,
+    ).toHaveBeenNthCalledWith(2, {
+      processId: 'p1',
+      message: '1 prazo(s) vencem amanha e precisam de acompanhamento',
+    });
+    expect(
+      internalNotificationService.notifyRecipients,
+    ).toHaveBeenNthCalledWith(3, {
+      processId: 'p1',
+      message: '1 prazo(s) de juntada de intimacao atingiram a data de acao',
+    });
   });
 
   it('keeps running next steps when one step fails', async () => {
