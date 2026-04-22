@@ -1,7 +1,7 @@
 {
   "name": "process-management-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "REST API for Brazilian civil litigation management — process tracking, witness control (CPC/JEC limits), hearing lifecycle, smart deadline engine, SMTP notifications, and immutable audit logs",
   "author": "Bruno Gusmão",
   "private": true,
   "license": "MIT",
